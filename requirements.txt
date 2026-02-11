@@ -1,0 +1,10 @@
+streamlit
+sentence-transformers
+scikit-learn
+pandas
+numpy
+pymongo
+bcrypt
+PyPDF2
+docx2txt
+nltk
