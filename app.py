@@ -47,6 +47,9 @@ if not st.session_state.logged_in:
 else:
 
     st.sidebar.success("Logged In")
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
 
     jd_text = st.text_area("📄 Paste Job Description")
 
@@ -57,9 +60,11 @@ else:
     )
 
     if st.button("Analyze Resumes"):
+        with st.spinner("Analyzing resumes with AI..."):
 
-        jd_clean = clean_text(jd_text)
-        jd_embedding = get_embedding(jd_clean)
+         
+         jd_clean = clean_text(jd_text)
+         jd_embedding = get_embedding(jd_clean)
 
         results = []
 
@@ -92,6 +97,16 @@ else:
         df = df.sort_values(by="Final Score", ascending=False)
 
         st.dataframe(df, use_container_width=True)
+        import matplotlib.pyplot as plt
+
+        st.subheader("Score Visualization")
+
+        fig, ax = plt.subplots()
+        ax.bar(df["Resume"], df["Final Score"])
+        ax.set_ylabel("Final Score")
+        ax.set_xlabel("Resume")
+        plt.xticks(rotation=45)
+        st.pyplot(fig)
 
         # CSV Download
         csv = df.to_csv(index=False).encode("utf-8")
