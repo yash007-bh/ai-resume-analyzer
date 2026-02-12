@@ -3,23 +3,23 @@ import pandas as pd
 import numpy as np
 import re
 import hashlib
+import io
 from pymongo import MongoClient
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from PyPDF2 import PdfReader
 import matplotlib.pyplot as plt
 
 # -------------------------------
 # PAGE CONFIG
 # -------------------------------
 st.set_page_config(page_title="AI Resume Analyzer", layout="wide")
-
 st.title("🤖 AI-Powered Resume Screening System")
 
 # -------------------------------
 # MONGODB CONNECTION
 # -------------------------------
 MONGO_URI = st.secrets["MONGO_URI"]
-
 client = MongoClient(MONGO_URI)
 db = client["resume_analyzer"]
 users_collection = db["users"]
@@ -32,7 +32,7 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 # -------------------------------
-# PASSWORD HASH
+# PASSWORD HASH FUNCTION
 # -------------------------------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -65,7 +65,7 @@ def extract_skills(text):
     return found
 
 # -------------------------------
-# LOGIN / REGISTER
+# LOGIN / REGISTER SECTION
 # -------------------------------
 if not st.session_state.logged_in:
 
@@ -100,7 +100,7 @@ if not st.session_state.logged_in:
                 st.error("Invalid Credentials")
 
 # -------------------------------
-# MAIN APP
+# MAIN APPLICATION
 # -------------------------------
 else:
 
@@ -127,7 +127,8 @@ else:
     jd_text = st.text_area("Paste Job Description Here")
 
     uploaded_files = st.file_uploader(
-        "Upload Resume Files (.txt only)",
+        "Upload Resume Files (.txt, .pdf)",
+        type=["txt", "pdf"],
         accept_multiple_files=True
     )
 
@@ -141,11 +142,19 @@ else:
 
                 vectorizer = TfidfVectorizer()
                 documents = [jd_text]
-
                 resume_texts = []
 
+                # Read Files Safely
                 for file in uploaded_files:
-                    text = file.read().decode("utf-8")
+
+                    if file.type == "application/pdf":
+                        pdf_reader = PdfReader(io.BytesIO(file.read()))
+                        text = ""
+                        for page in pdf_reader.pages:
+                            text += page.extract_text() or ""
+                    else:
+                        text = file.read().decode("utf-8", errors="ignore")
+
                     resume_texts.append((file.name, text))
                     documents.append(text)
 
@@ -163,7 +172,6 @@ else:
 
                     skills_found = extract_skills(text)
                     skill_score = len(skills_found) / len(SKILLS)
-
                     experience_years = extract_experience(text)
 
                     final_score = (
@@ -201,7 +209,6 @@ else:
 
                 # Visualization
                 st.subheader("📈 Score Visualization")
-
                 fig, ax = plt.subplots()
                 ax.bar(df["resume_name"], df["final_score"])
                 ax.set_ylabel("Final Score")
