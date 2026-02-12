@@ -8,3 +8,4 @@ bcrypt
 PyPDF2
 docx2txt
 nltk
+matplotlib
